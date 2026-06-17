@@ -319,10 +319,6 @@ def login_page():
                     st.error("❌ Invalid credentials")
 
     st.divider()
-    st.markdown("### Do you need to bring in a vehicle??")
-    if st.button("🚦 Start without login", use_container_width=True, type="secondary"):
-        st.session_state.guest_mode = True
-        st.rerun()
 
 def page_ingress():
     st.markdown("<h2>🚦 Vehicle Ingress</h2>", unsafe_allow_html=True)
@@ -593,7 +589,7 @@ def page_reports():
 
     st.markdown("<h2>📊 Reports & stics</h2>", unsafe_allow_html=True)
     
-    # ==================== NUEVO BUSCADOR POR TAG / VIN ====================
+    # ==================== BUSCADOR POR TAG / VIN ====================
     col_search1, col_search2 = st.columns([3, 1])
     with col_search1:
         search_term = st.text_input("🔍 Search by VIN or TAG Number", placeholder="Enter VIN or TAG...", key="search_reports")
@@ -689,7 +685,7 @@ def page_reports():
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-    # ... (el resto de la sección de Reverting Deliveries se mantiene igual)
+    # Reverting Deliveries 
     if st.session_state.level >= 2:
         st.divider()
         st.subheader("↩️ Reverting Deliveries (Error Correction)")
@@ -918,7 +914,7 @@ def page_users():
         with st.form("add_branch_form"):
             col1, col2 = st.columns([3, 1])
             with col1:
-                new_branch_name = st.text_input("Agency Name", placeholder="e.g. BMW Downtown")
+                new_branch_name = st.text_input("Agency Name", placeholder="e.g. Agency Downtown")
             with col2:
                 is_active_default = st.checkbox("Active", value=True)
             
