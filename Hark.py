@@ -129,17 +129,15 @@ def init_database():
 
         c.execute("SELECT COUNT(*) as total FROM branches")
         if c.fetchone()['total'] == 0:
-            c.execute("INSERT INTO branches (name) VALUES ('BMW Arlington'), ('Five Star Subaru'), ('Vandergriff Acura')")
+            c.execute("INSERT INTO branches (name) VALUES ('Audi Austin')")
 
         c.execute("SELECT COUNT(*) as total FROM users")
         if c.fetchone()['total'] == 0:
             c.execute("SELECT id, name FROM branches")
             branches = c.fetchall()
             branches_map = {row['name']: row['id'] for row in branches}
-            bmw_id = branches_map.get('BMW Arlington')
-            acura_id = branches_map.get('Vandergriff Acura')
-            subaru_id = branches_map.get('Five Star Subaru')
-
+            audi_id = branches_map.get('Audi Austin')
+          
             users_data = [
                 ('SuperSU', hashlib.sha256('Krieger1'.encode()).hexdigest(), 3, 'Administrator', None),
                 ('Admin', hashlib.sha256('Admin123*'.encode()).hexdigest(), 3, 'Administrator', None),
