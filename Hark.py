@@ -322,7 +322,7 @@ def page_ingress():
         with col1:
             req_type = SERVICE_FIELD_REQUIREMENTS.get(service, "both")
             vin = st.text_input("VIN Number", key="vin_in")
-            tag = st.text_input("TAG Number", key="tag_in")
+            tag = st.text_input("TAG/STOCKS Number", key="tag_in")
             brand = st.text_input("Brand", key="brand_in", placeholder="")
         
         with col2:
