@@ -137,7 +137,7 @@ def init_database():
             branches = c.fetchall()
             branches_map = {row['name']: row['id'] for row in branches}
             audi_id = branches_map.get('Audi Austin')
-          
+
             users_data = [
                 ('SuperSU', hashlib.sha256('Krieger1'.encode()).hexdigest(), 3, 'Administrator', None),
                 ('Admin', hashlib.sha256('Admin123*'.encode()).hexdigest(), 3, 'Administrator', None),
@@ -158,21 +158,16 @@ for h in range(24):
         TIME_12H_OPTIONS.append(dt_obj.strftime("%I:%M %p"))
 
 SERVICES_LIST = [
-    "Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line",
-    "Full Detail the customer", "Zaktek", "Sold Detail", "Sold use car", "Sold new car",
-    
+    "(Sales) PPF Film", "(Sales) Windows Tint", "(Sales) Used Car Detail", "(Service) PPF Film",
+    "(Service) Windows Tint","(Service) Used Car Detail",
 ]
 SERVICE_FIELD_REQUIREMENTS = {
-    "Service Wash": "tag",
-    "Loaner": "tag",
-    "Photo": "vin",
-    "Full Detail the customer": "tag",
-    "Zaktek": "tag",
-    "Show Room": "vin",
-    "Full Detail for line": "vin",
-    "Sold Detail": "vin",
-    "Sold use car": "vin",
-    "Sold new car": "vin"
+    "(Sales) PPF Film": "vin",
+    "(Sales) Windows Tint": "vin",
+    "(Sales) Used Car Detail": "vin",
+	"(Service) PPF Film": "tag",
+    "(Service) Windows Tint": "tag",
+    "(Service) Used Car Detail": "tag",
 }
 
 # ==================== FUNCIONES AUXILIARES ====================
@@ -212,14 +207,7 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
 
         # ==================== SERVICIOS SIN FECHA REQUERIDA ====================
         
-        if service_clean in ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]:
-            if service_clean == "Service Wash":
-                if hours_since < 0.16:      
-                    return "#28a745", "✅ In Time", f"{hours_since:.1f}h"
-                elif hours_since < 0.33:     
-                    return "#ffc107", "⚠️ Almost Due", f"{hours_since:.1f}h"
-                else:
-                    return "#dc3545", "🚨 Out of Time", f"{hours_since:.1f}h"
+        if service_clean in [ "(Sales) PPF Film", "(Sales) Windows Tint", "(Sales) Used Car Detail"]:
             
             if hours_since < 24:
                 return "#28a745", "✅ In Time", f"{hours_since:.1f}h"
@@ -240,7 +228,7 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
 
         hours_until = (req_date - now_dallas).total_seconds() / 3600
 
-        if service_clean in ["Full Detail the customer", "Zaktek", "Sold Detail", "Sold new car", "Sold use car"]:
+        if service_clean in ["(Service) PPF Film","(Service) Windows Tint","(Service) Used Car Detail",]:
             if hours_until > 2.0:
                 return "#28a745", "✅ In Time", f"{hours_until:.1f}h until"
             elif hours_until > 1.0:
@@ -319,12 +307,12 @@ def login_page():
                     st.error("❌ Invalid credentials")
 
     st.divider()
-
+    
 def page_ingress():
     st.markdown("<h2>🚦 Vehicle Ingress</h2>", unsafe_allow_html=True)
     st.info(f"📍 Agency: {st.session_state.branch_name} | 👤 {st.session_state.full_name}")
     
-    NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
+    NO_REQUIRED_SERVICES = ["(Sales) PPF Film", "(Sales) Windows Tint", "(Sales) Used Car Detail"]
 
     # Service fuera del form
     service = st.selectbox("⚠️ Service (Select the required service)⚠️", SERVICES_LIST, key="service_sel")
@@ -339,7 +327,7 @@ def page_ingress():
         
         with col2:
             model = st.text_input("Model", key="model_in", placeholder="")
-            responsible_name = st.text_input("Technical/Sales Man (Name)", key="res_name_in")
+            responsible_name = st.text_input("Technician/Salesperson (Name)", key="res_name_in")
         
         with col3:
             today = datetime.now().date()
@@ -473,7 +461,7 @@ def page_pending():
             st.rerun()
         return
 
-    NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
+    NO_REQUIRED_SERVICES = ["(Sales) PPF Film", "(Sales) Windows Tint", "(Sales) Used Car Detail"]
 
     by_service = {}
     for v in all_v:
@@ -685,7 +673,7 @@ def page_reports():
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-    # Reverting Deliveries 
+    # Reverting Deliveries se mantiene igual)
     if st.session_state.level >= 2:
         st.divider()
         st.subheader("↩️ Reverting Deliveries (Error Correction)")
@@ -1030,7 +1018,7 @@ def page_public_ingress_level0():
 
     st.info(f"📍 Selected agency: **{st.session_state.guest_branch_name}**")
     
-    NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
+    NO_REQUIRED_SERVICES = ["(Sales) PPF Film", "(Sales) Windows Tint", "(Sales) Used Car Detail"]
 
     service = st.selectbox("⚠️ Service (Select the required service)⚠️", SERVICES_LIST, key="guest_service")
 
