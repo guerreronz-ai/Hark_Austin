@@ -409,10 +409,10 @@ def page_ingress():
                     dallas_now, 'Pending', responsible_name.strip()
                 ))
                 
-            st.success(f"✅ Vehicle successfully registered in **{st.session_state.branch_name}**")
+           st.success(f"✅ Vehicle successfully registered in **{st.session_state.branch_name}**")
             # Reset selector de servicio
             if "service_sel" in st.session_state:
-                del st.session_state["service_sel"] = None
+                del st.session_state["service_sel"]
             st.rerun()
             
 def page_pending():
