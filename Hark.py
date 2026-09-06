@@ -627,9 +627,9 @@ def page_reports():
         st.info("This section is available only for Supervisors and Administrators.")
         st.stop()
 
-    st.markdown("<h2>📊 Reports & stics</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>📊 Reports & Statistics</h2>", unsafe_allow_html=True)
     
-    # ==================== BUSCADOR POR TAG / VIN ====================
+    # ==================== SEARCH BY TAG / VIN ====================
     col_search1, col_search2 = st.columns([3, 1])
     with col_search1:
         search_term = st.text_input("🔍 Search by VIN or TAG Number", placeholder="Enter VIN or TAG...", key="search_reports")
@@ -647,7 +647,8 @@ def page_reports():
     for b in branches: branch_opts[b['name']] = b['id']
 
     col1, col2, col3, col4 = st.columns(4)
-    with col1: period = st.selectbox("Period", ["All Time", "Today", "This Week", "This Month"])
+    with col1: 
+        period = st.selectbox("Period", ["All Time", "Today", "This Week", "This Month", "Custom Range"])
     with col2: status_filter = st.selectbox("Status", ["All", "Pending", "Delivered"])
     with col3: service_filter = st.selectbox("Service", ["All"] + SERVICES_LIST)
     with col4:
@@ -656,6 +657,27 @@ def page_reports():
             branch_id_filter = branch_opts[selected_agency]
         else:
             branch_id_filter = st.session_state.branch_id
+
+    # ==================== DATE RANGE SELECTOR (US FORMAT MM/DD/YYYY) ====================
+    start_date, end_date = None, None
+    if period == "Custom Range":
+        today = datetime.now().date()
+        default_start = today - timedelta(days=7)
+        
+        col_date1, col_date2 = st.columns(2)
+        with col_date1:
+            date_range = st.date_input(
+                "📅 Select Date Range (MM/DD/YYYY)",
+                value=(default_start, today),
+                format="MM/DD/YYYY",
+                key="custom_date_range"
+            )
+        
+        if isinstance(date_range, tuple) and len(date_range) == 2:
+            start_date, end_date = date_range
+        elif isinstance(date_range, tuple) and len(date_range) == 1:
+            start_date = date_range[0]
+            end_date = date_range[0]
 
     if st.button("🔄 Update Reports", type="primary"): st.rerun()
 
@@ -670,15 +692,21 @@ def page_reports():
         if branch_id_filter is not None: 
             conditions.append("v.branch_id = %s"); params.append(branch_id_filter)
         
-        # ==================== LÓGICA DE FECHAS MEJORADA ====================
-        # Mantiene visibles los vehículos PENDING actuales y filtra los DELIVERED por su fecha de entrega o recepción
+        # ==================== DATE FILTER LOGIC ====================
         if period == "Today": 
             conditions.append("(v.status = 'Pending' OR v.reception_date::date = CURRENT_DATE OR v.delivery_date::date = CURRENT_DATE)")
         elif period == "This Week": 
             conditions.append("(v.status = 'Pending' OR v.reception_date::timestamp >= DATE_TRUNC('week', CURRENT_DATE) OR v.delivery_date::timestamp >= DATE_TRUNC('week', CURRENT_DATE))")
         elif period == "This Month": 
             conditions.append("(v.status = 'Pending' OR DATE_TRUNC('month', v.reception_date::timestamp) = DATE_TRUNC('month', CURRENT_DATE) OR DATE_TRUNC('month', v.delivery_date::timestamp) = DATE_TRUNC('month', CURRENT_DATE))")
-            
+        elif period == "Custom Range" and start_date and end_date:
+            conditions.append("""
+                (v.status = 'Pending' OR 
+                 v.reception_date::date BETWEEN %s AND %s OR 
+                 v.delivery_date::date BETWEEN %s AND %s)
+            """)
+            params.extend([start_date, end_date, start_date, end_date])
+
         if status_filter != "All": 
             conditions.append("v.status = %s"); params.append(status_filter)
         if service_filter != "All": 
@@ -698,6 +726,11 @@ def page_reports():
     if df_all.empty:
         st.warning("📭 No vehicles found with the applied filters." if not search_term else f"📭 No vehicles found matching '{search_term}'")
         return
+
+    # Format dates for US standard display (MM/DD/YYYY)
+    for date_col in ['reception_date', 'delivery_date']:
+        if date_col in df_all.columns:
+            df_all[date_col] = pd.to_datetime(df_all[date_col], errors='coerce').dt.strftime('%m/%d/%Y %I:%M %p').fillna('-')
 
     df_display = df_all.copy().rename(columns={
         'tag_number': 'TAG', 'vin_number': 'VIN', 'brand': 'Brand', 'model': 'Model',
@@ -722,10 +755,14 @@ def page_reports():
     with pd.ExcelWriter(output, engine='openpyxl') as writer: 
         df_all.to_excel(writer, sheet_name='Vehicles', index=False)
     output.seek(0)
+    
+    # File naming formatted in US standard (MMDDYYYY)
+    range_suffix = f"_{start_date.strftime('%m%d%Y')}_to_{end_date.strftime('%m%d%Y')}" if start_date and end_date else f"_{datetime.now().strftime('%m%d%Y')}"
+    
     st.download_button(
-        label="📥 Download Excel", 
+        label="📥 Download Excel Report", 
         data=output, 
-        file_name=f"HARK_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx", 
+        file_name=f"HARK_Report{range_suffix}.xlsx", 
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
@@ -769,7 +806,7 @@ def page_reports():
                 st.rerun()
         else:
             st.info("📭 There are no recently delivered vehicles to reverse.")
-
+			
 def page_users():
     st.markdown("<h1>👤 User & Agency Management</h1>", unsafe_allow_html=True)
     if st.session_state.level != 3:
