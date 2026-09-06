@@ -314,7 +314,22 @@ def page_ingress():
     
     NO_REQUIRED_SERVICES = ["(Sales) PPF Film", "(Sales) Windows Tint", "(Sales) Used Car Detail"]
 
-    # Service fuera del form con index=None y placeholder
+    # Floating notification + Form cleanup after successful save
+    if "ingress_success" in st.session_state and st.session_state.ingress_success:
+        st.session_state.ingress_success = False
+        st.toast("🎉 Vehicle saved successfully!", icon="✅")
+        st.session_state.vin_in = ""
+        st.session_state.tag_in = ""
+        st.session_state.brand_in = ""
+        st.session_state.model_in = ""
+        st.session_state.res_name_in = ""
+        st.session_state.notes_in = ""
+
+    # Large prominent success banner
+    if "last_success_msg" in st.session_state and st.session_state.last_success_msg:
+        st.success(st.session_state.last_success_msg)
+        del st.session_state.last_success_msg
+
     service = st.selectbox(
         "⚠️ Service (Select the required service)⚠️", 
         SERVICES_LIST, 
@@ -323,7 +338,7 @@ def page_ingress():
         key="service_sel"
     )
 
-    with st.form("ingress_form", clear_on_submit=True):
+    with st.form("ingress_form", clear_on_submit=False):
         col1, col2, col3 = st.columns(3)
         with col1:
             req_type = SERVICE_FIELD_REQUIREMENTS.get(service, "both") if service else "both"
@@ -357,30 +372,38 @@ def page_ingress():
         
         if st.form_submit_button("💾 Save Vehicle", use_container_width=True, type="primary"):
             
-            # ====================== VALIDACIÓN DE SERVICIO SELECCIONADO ======================
+            # ====================== SERVICE VALIDATION ======================
             if not service:
-                st.error("❌ Please select a service before saving.")
+                st.toast("⚠️ ERROR: No service selected", icon="❌")
+                st.error("### 🚨 ATTENTION! YOU MUST SELECT A SERVICE BEFORE SAVING 🚨\nPlease choose a service from the dropdown above.")
                 st.stop()
             
-            # ====================== VALIDACIÓN FECHA/HORA ======================
+            # ====================== DATE/TIME VALIDATION ======================
             if service not in NO_REQUIRED_SERVICES:
-                if not is_future_datetime(req_day, req_time):   # ← Solo 2 argumentos
+                if not is_future_datetime(req_day, req_time):
                     now = datetime.now(ZoneInfo("America/Chicago"))
+                    st.toast("⚠️ ERROR: Invalid Date/Time selected", icon="⏰")
                     if now.hour >= 21:
-                        st.error("❌ *Después de las 9:00 PM* no se pueden registrar vehículos para hoy.\nSolo se permite programar para *mañana* o fecha posterior.")
+                        st.error("### 🚫 INVALID DATE\n**After 9:00 PM**, vehicles cannot be registered for today. Please schedule for **tomorrow** or a later date.")
                     else:
-                        st.error("❌ No se puede programar en el pasado.\nLa fecha y hora requerida debe ser futura.")
+                        st.error("### 🚫 INVALID DATE\nYou cannot schedule delivery times in the past. The required date and time **must be in the future**.")
                     st.stop()
             
-            # ====================== VALIDACIONES DE CAMPOS ======================
+            # ====================== FIELD VALIDATIONS ======================
             if req_type == "both" and (not vin.strip() or not tag.strip()):
-                st.error("❌ This service requires both VIN and TAG"); st.stop()
+                st.toast("⚠️ Missing required fields (VIN & TAG)", icon="⚠️")
+                st.error("### ❌ ENTRY ERROR: This service requires both the VIN and TAG/STOCKS numbers.")
+                st.stop()
             elif req_type == "vin" and not vin.strip():
-                st.error("❌ This service requires a VIN Number"); st.stop()
+                st.toast("⚠️ Missing VIN Number", icon="⚠️")
+                st.error("### ❌ ENTRY ERROR: This service requires a VIN number.")
+                st.stop()
             elif req_type == "tag" and not tag.strip():
-                st.error("❌ This service requires a TAG Number"); st.stop()
+                st.toast("⚠️ Missing TAG/STOCKS Number", icon="⚠️")
+                st.error("### ❌ ENTRY ERROR: This service requires a TAG/STOCKS number.")
+                st.stop()
             
-            # ====================== GUARDAR EN BASE DE DATOS ======================
+            # ====================== DATABASE CHECK & SAVE ======================
             dallas_tz = ZoneInfo("America/Chicago")
             dallas_now = datetime.now(dallas_tz).strftime("%Y-%m-%d %I:%M %p")
             check_val = (vin if req_type in ["vin", "both"] else tag).strip().upper()
@@ -391,7 +414,9 @@ def page_ingress():
                 c.execute(f"SELECT id FROM vehicles WHERE {check_col}=%s AND service=%s AND branch_id=%s AND status='Pending'", 
                           (check_val, service, st.session_state.branch_id))
                 if c.fetchone():
-                    st.error(f"❌ {check_val} is already registered for {service}"); st.stop()
+                    st.toast(f"⚠️ Vehicle {check_val} is already registered", icon="⛔")
+                    st.error(f"### ⛔ DUPLICATE ENTRY\nVehicle **{check_val}** is already registered and **PENDING** for the **{service}** service.")
+                    st.stop()
                 
                 c.execute("""
                     INSERT INTO vehicles (vin_number, tag_number, brand, model, required_day, required_time, service, notes,
@@ -409,8 +434,10 @@ def page_ingress():
                     dallas_now, 'Pending', responsible_name.strip()
                 ))
                 
-           st.success(f"✅ Vehicle successfully registered in **{st.session_state.branch_name}**")
-            # Reset selector de servicio
+            # Success setup
+            st.session_state.ingress_success = True
+            st.session_state.last_success_msg = f"### 🎉 VEHICLE SUCCESSFULLY REGISTERED!\nSaved successfully at **{st.session_state.branch_name}**"
+            
             if "service_sel" in st.session_state:
                 del st.session_state["service_sel"]
             st.rerun()
