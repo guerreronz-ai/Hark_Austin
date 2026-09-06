@@ -325,7 +325,7 @@ def page_ingress():
     # Floating notification + Form cleanup after successful save
     if "ingress_success" in st.session_state and st.session_state.ingress_success:
         st.session_state.ingress_success = False
-        st.toast("🎉 Vehicle saved successfully!", icon="✅")
+        st.toast("✅ Vehicle saved successfully!", icon="✅")
         st.session_state.vin_in = ""
         st.session_state.tag_in = ""
         st.session_state.brand_in = ""
