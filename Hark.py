@@ -307,6 +307,14 @@ def login_page():
                     st.error("❌ Invalid credentials")
 
     st.divider()
+
+    # ==================== LOGO PERFECTAMENTE CENTRADO ====================
+    st.write("")
+    st.write("")
+    
+    _, col_center, _ = st.columns([2, 1, 2])
+    with col_center:
+        st.image("hark_logo.png", use_container_width=True)
     
 def page_ingress():
     st.markdown("<h2>🚦 Vehicle Ingress</h2>", unsafe_allow_html=True)
